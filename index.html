@@ -411,7 +411,33 @@
 
 </div>
 
-<div class="footer">Torneo Haxball x4 · Sincronización en tiempo real con Firebase</div>
+<div class="main" style="padding-top:0;">
+  <div class="section-title">📋 Reglamento</div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:2.5rem;display:flex;flex-direction:column;gap:16px;">
+    <div>
+      <div style="font-weight:700;color:var(--accent);font-size:13px;margin-bottom:4px;">🔴 Lag y pausas</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.6;">Si el servidor comienza a ir lageado, los jugadores tienen la obligación de pedir pausa inmediatamente hasta que vuelva a ser estable. Si ningún equipo reclama durante la jugada, el partido continuará normalmente y no habrá reclamos posteriores.</div>
+    </div>
+    <div>
+      <div style="font-weight:700;color:var(--accent);font-size:13px;margin-bottom:4px;">🔴 Situaciones polémicas por lag</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.6;">Si ocurre una situación polémica relacionada con lag que termine en gol o una jugada importante, los administradores deberán revisar las recs y tomar una decisión objetiva.</div>
+    </div>
+    <div>
+      <div style="font-weight:700;color:var(--accent);font-size:13px;margin-bottom:4px;">🔴 Reemplazos</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.6;">Si a un equipo le falta un jugador, podrá ser reemplazado por otro jugador del mismo tier o uno similar/inferior. <span style="color:var(--muted);">Ejemplo: un Tier A podrá ser reemplazado por un Tier A o Tier B.</span></div>
+    </div>
+    <div>
+      <div style="font-weight:700;color:var(--accent);font-size:13px;margin-bottom:4px;">🔴 Juego antideportivo</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.6;">Queda prohibido el "haramball", "doble arquero" o cualquier estrategia donde múltiples jugadores permanezcan constantemente cubriendo el arco de forma excesiva. No se permitirá que todo el equipo juegue únicamente debajo del arco con el objetivo de impedir el juego ofensivo. Esto será considerado juego antideportivo y podrá resultar en advertencia, amonestación o sanción.</div>
+    </div>
+    <div>
+      <div style="font-weight:700;color:var(--yellow);font-size:13px;margin-bottom:4px;">⭐ Partido especial — Equipo F</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.6;">En la última fecha, el Equipo F jugará un partido contra el último equipo de la clasificación. Los puntos de ese partido <strong>solo contarán para el Equipo F</strong>. Para el último clasificado, los puntos no computarán.</div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">Torneo Prime Haxball x4 · Sincronización en tiempo real con Firebase</div>
 
 <!-- Firebase -->
 <script type="module">
@@ -454,7 +480,9 @@
       { id:'f3m1', time:'22:00', home:'Equipo A', away:'Equipo D' },
       { id:'f3m2', time:'22:30', home:'Equipo B', away:'Equipo E' },
       { id:'f3m3', time:'23:00', home:'Equipo G', away:'Equipo F' },
-    ], descanso:'Equipo C' },
+      { id:'f3m4', time:'23:30', home:'Equipo C', away:'Equipo G' },
+      { id:'f3m5', time:'00:00', home:'Equipo F', away:'?', special: true },
+    ], descanso:null },
   ];
 
   // Estado en memoria
@@ -496,12 +524,21 @@
       const r = results[m.id];
       if (r) {
         const ha = parseInt(r.home), aa = parseInt(r.away);
-        stats[m.home].pj++; stats[m.away].pj++;
-        stats[m.home].gf += ha; stats[m.home].gc += aa;
-        stats[m.away].gf += aa; stats[m.away].gc += ha;
-        if (ha > aa) { stats[m.home].g++; stats[m.home].pts+=3; stats[m.away].p++; }
-        else if (ha < aa) { stats[m.away].g++; stats[m.away].pts+=3; stats[m.home].p++; }
-        else { stats[m.home].e++; stats[m.home].pts++; stats[m.away].e++; stats[m.away].pts++; }
+        // Partido especial f3m5: solo cuentan los puntos para Equipo F
+        if (m.special) {
+          stats[m.home].pj++;
+          stats[m.home].gf += ha; stats[m.home].gc += aa;
+          if (ha > aa) { stats[m.home].g++; stats[m.home].pts+=3; }
+          else if (ha < aa) { stats[m.home].p++; }
+          else { stats[m.home].e++; stats[m.home].pts++; }
+        } else {
+          stats[m.home].pj++; stats[m.away].pj++;
+          stats[m.home].gf += ha; stats[m.home].gc += aa;
+          stats[m.away].gf += aa; stats[m.away].gc += ha;
+          if (ha > aa) { stats[m.home].g++; stats[m.home].pts+=3; stats[m.away].p++; }
+          else if (ha < aa) { stats[m.away].g++; stats[m.away].pts+=3; stats[m.home].p++; }
+          else { stats[m.home].e++; stats[m.home].pts++; stats[m.away].e++; stats[m.away].pts++; }
+        }
       }
     }));
     return TEAMS.map(t => ({ team:t, ...stats[t], dg: stats[t].gf - stats[t].gc }))
@@ -577,18 +614,26 @@
         row.innerHTML = `
           <span class="match-time">${m.time}</span>
           <div class="match-teams">
-            <span class="team-a" style="color:${TEAM_COLORS[m.home]}">${m.home}</span>
+            <span class="team-a" style="color:${TEAM_COLORS[m.home]||'var(--accent)'}">${m.home}</span>
             <span class="vs-badge">vs</span>
-            <span class="team-b" style="color:${TEAM_COLORS[m.away]}">${m.away}</span>
+            <span class="team-b" style="color:${m.special ? 'var(--muted)' : (TEAM_COLORS[m.away]||'var(--accent)')}">${m.special ? '⚠️ Último clasificado' : m.away}</span>
           </div>
           ${scoreHtml}
         `;
         el.appendChild(row);
+        if (m.special) {
+          const note = document.createElement('div');
+          note.style.cssText = 'padding:6px 18px 10px;font-size:11px;color:var(--muted);font-style:italic;';
+          note.textContent = '* Solo cuentan los puntos para Equipo F. Para el último clasificado el partido no computa.';
+          el.appendChild(note);
+        }
       });
-      const dRow = document.createElement('div');
-      dRow.className = 'descansa-row';
-      dRow.textContent = '😴 Descansa: ' + fd.descanso;
-      el.appendChild(dRow);
+      if (fd.descanso) {
+        const dRow = document.createElement('div');
+        dRow.className = 'descansa-row';
+        dRow.textContent = '😴 Descansa: ' + fd.descanso;
+        el.appendChild(dRow);
+      }
     });
   }
 
